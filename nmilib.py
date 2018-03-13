@@ -232,7 +232,7 @@ def get_indices(M,N):
     
     for l in  mv_col_index:        
         IC_i_list = []
-        vals = M[C[l][:]]
+        vals = N[N.columns[l][:]]
         val_exists = vals.isin([True,False,'+','-','yes','YES','Yes','no','NO','No'])
         #for i in mv_row_index:
         #As per NMI we need to strip all tuples with MV while calculating IC
@@ -358,7 +358,7 @@ def compute_case1_categorical(A,column_lables,mv_col,i,k,non_mv_row_index):
     print("\nreq_col =",req_col)
     A_NO_MV = A_NO_MV[req_col]
     print("A =",A_NO_MV)
-    B = [] #holds the B gamma ps
+    #holds the B gamma ps
     B = A.index
     print("B =",B)
     IC_cat = []

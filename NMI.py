@@ -1,58 +1,46 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
-
 Source code for New Imputation Method
+
+Workflow:
+  1. Load data (`?` = missing)
+  2. Carve rows with missing decision as held-out **test** data
+  3. Train / impute on remaining rows (known decision)
+  4. Test partition is available after training for evaluation
 """
-import statistics as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as pp
-from pandas import Categorical
-from nmilib import *
+from nmilib import (
+    CATEGORICAL_TYPES,
+    non_parametric_imputation,
+    split_train_test_by_decision,
+    carve_and_save_train_test,
+)
 
+NA = ["", "?"]
 
-    
-#S is input set of patient records    
-datatable = pd.read_csv("data2.txt",na_values=["",'?'])
-print('rawdata =\n',datatable)
-data = prepare_numeric_data(datatable)
+# --- Split data3: missing-dec rows → test; known-dec rows → train ---
+datatable = pd.read_csv("data3.txt", na_values=NA)
+train, test = split_train_test_by_decision(datatable, decision_col="dec")
+carve_and_save_train_test(
+    datatable,
+    train_path="data3_train.txt",
+    test_path="data3_test.txt",
+    decision_col="dec",
+)
 
-cats = Categorical([True,False,'+','-','yes','YES','Yes','no','NO','No'])
+print("CATEGORICAL_TYPES:", list(CATEGORICAL_TYPES))
+print(f"\nTotal rows: {len(datatable)}")
+print(f"Train (known dec): {len(train)}  → data3_train.txt")
+print(f"Test  (missing dec): {len(test)} → data3_test.txt")
+print("\nTest data (missing decision) carved out:\n", test.head(10))
 
-#print('M Frame values')
-#print(M.iloc[0:,0:])
-# M is the subset of S having records without missing values in the nth column
-M = filter_mv_decisions(data)
-print("\n\ndata without mv in decision column")
-print(M)
+# --- Training: impute attribute MVs on the train partition ---
+print("\nTrain before imputation:\n", train.head(8))
+train_imputed = non_parametric_imputation(train, decision_col="dec", verbose=True)
+print("\nTrain after imputation:\n", train_imputed.head(8))
 
-#compute idices
-#print("\nid(M) before =",id(M))
-
-#get all mv records
-mvrecords = get_MV_records(M)
-#iterate through MV records and compute missing value
-non_mv_records = strip_MV_Records(M)
-
-#print(pd.DataFrame(mvrecords))
-
-for i in mvrecords.index:
-    
-    IC = get_indices(pd.DataFrame(non_mv_records),pd.DataFrame(mvrecords.iloc[i,:]))
-    print("\n IC =\n",IC)
-    #compute the indices
-    
-    
-    dmatrix = compute_distance(list(IC))
-    
-    mv_record_index_list = [0,]
-    #dmatrix = [[0,0.99,1.11,1.46],[0.99,0,2.11,2.27],[1.11,2.11,0,2.32],[1.46,2.27,2.32,0]]
-    #dmatrix = [[0,0.86,0.99],[0.86,0,1.32],[0.99,1.32,0]]
-    
-    #dmatrix = []
-    zdmatrix = compute_zd(dmatrix,mv_record_index_list,len(dmatrix))
-    print("zd = ",zdmatrix)
-
-#zdmatrix = compute_zd(dmatrix,1)
-#counter = 0
+# --- After training, test partition is ready for evaluation ---
+print(
+    f"\nTraining done. Held-out test set has {len(test)} rows "
+    f"with missing decision (not used during training)."
+)
